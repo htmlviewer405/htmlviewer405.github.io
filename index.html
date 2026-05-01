@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HTML Playground</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;700;800&display=swap');
+
+  :root {
+    --bg: #0e0e12;
+    --surface: #16161c;
+    --surface2: #1e1e28;
+    --border: #2a2a38;
+    --accent: #7c6dfa;
+    --accent2: #fa6d9a;
+    --green: #4dfa9a;
+    --text: #e0dff8;
+    --dim: #6a6a88;
+    --run-glow: rgba(124,109,250,0.4);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    overflow: hidden;
+  }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    height: 52px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 12px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 10;
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-right: 8px;
+  }
+  .logo-dot { color: var(--accent2); }
+
+  .tab-group {
+    display: flex;
+    gap: 4px;
+    flex: 1;
+  }
+  .tab {
+    padding: 6px 14px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all .18s;
+    letter-spacing: 0.5px;
+  }
+  .tab:hover { color: var(--text); border-color: var(--border); }
+  .tab.active {
+    background: var(--surface2);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .topbar-right {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  /* Upload button */
+  .upload-btn {
+    padding: 7px 14px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all .18s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .upload-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+  #fileInput { display: none; }
+
+  /* Clear button */
+  .clear-btn {
+    padding: 7px 12px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all .18s;
+  }
+  .clear-btn:hover { border-color: #fa6d6d; color: #fa6d6d; }
+
+  /* RUN BUTTON */
+  .run-btn {
+    padding: 8px 22px;
+    background: var(--accent);
+    border: none;
+    color: #fff;
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: 4px;
+    letter-spacing: 1px;
+    transition: all .2s;
+    display: flex; align-items: center; gap: 8px;
+    box-shadow: 0 0 0 rgba(124,109,250,0);
+  }
+  .run-btn:hover {
+    background: #9580ff;
+    box-shadow: 0 0 20px var(--run-glow);
+    transform: translateY(-1px);
+  }
+  .run-btn:active { transform: translateY(0); }
+  .run-btn .play-ico {
+    width: 0; height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 9px solid white;
+    display: inline-block;
+  }
+
+  /* FULLSCREEN PREVIEW button */
+  .fs-btn {
+    padding: 7px 12px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all .18s;
+  }
+  .fs-btn:hover { border-color: var(--green); color: var(--green); }
+
+  /* ── MAIN LAYOUT ── */
+  .workspace {
+    display: flex;
+    height: calc(100vh - 52px);
+    position: relative;
+  }
+
+  /* ── EDITOR PANE ── */
+  .editor-pane {
+    width: 50%;
+    display: flex;
+    flex-direction: column;
+    border-right: 2px solid var(--border);
+    position: relative;
+    transition: width .3s cubic-bezier(.4,0,.2,1);
+  }
+  .editor-pane.hidden-pane { width: 0; overflow: hidden; border: none; }
+
+  .editor-header {
+    height: 32px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    font-size: 10px;
+    color: var(--dim);
+    letter-spacing: 2px;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .editor-header .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .dot-r { background: #fa6d6d; }
+  .dot-y { background: #fada6d; }
+  .dot-g { background: var(--green); }
+
+  /* Line numbers + textarea wrapper */
+  .editor-body {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    background: var(--bg);
+  }
+
+  .line-nums {
+    padding: 14px 10px 14px 14px;
+    background: var(--surface);
+    color: var(--dim);
+    font-size: 13px;
+    line-height: 1.7;
+    text-align: right;
+    user-select: none;
+    min-width: 44px;
+    overflow: hidden;
+    border-right: 1px solid var(--border);
+  }
+
+  #codeEditor {
+    flex: 1;
+    padding: 14px;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    resize: none;
+    tab-size: 2;
+    white-space: pre;
+    overflow: auto;
+    caret-color: var(--accent);
+  }
+  #codeEditor::selection { background: rgba(124,109,250,0.25); }
+  #codeEditor::placeholder { color: var(--dim); }
+
+  /* ── DRAG HANDLE ── */
+  .drag-handle {
+    width: 6px;
+    background: var(--border);
+    cursor: col-resize;
+    flex-shrink: 0;
+    transition: background .2s;
+    z-index: 5;
+    position: relative;
+  }
+  .drag-handle:hover, .drag-handle.dragging { background: var(--accent); }
+  .drag-handle::after {
+    content: '⋮';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%,-50%);
+    color: var(--dim);
+    font-size: 14px;
+  }
+
+  /* ── PREVIEW PANE ── */
+  .preview-pane {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .preview-header {
+    height: 32px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    font-size: 10px;
+    color: var(--dim);
+    letter-spacing: 2px;
+    flex-shrink: 0;
+    gap: 8px;
+    justify-content: space-between;
+  }
+  .preview-url {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 2px 10px;
+    font-size: 10px;
+    color: var(--dim);
+    flex: 1;
+    max-width: 300px;
+  }
+
+  #previewFrame {
+    flex: 1;
+    border: none;
+    background: #fff;
+  }
+
+  /* ── EMPTY STATE ── */
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    color: var(--dim);
+    background: #0b0b0f;
+  }
+  .empty-state .big-ico { font-size: 52px; opacity: 0.3; }
+  .empty-state p { font-size: 12px; letter-spacing: 1px; }
+
+  /* ── FULLSCREEN OVERLAY ── */
+  #fullscreenOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: #fff;
+    display: none;
+    flex-direction: column;
+  }
+  #fullscreenOverlay.active { display: flex; }
+  .fs-bar {
+    height: 40px;
+    background: #111;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .fs-bar span { color: #888; font-size: 11px; font-family: 'JetBrains Mono', monospace; }
+  .fs-close {
+    margin-left: auto;
+    background: transparent;
+    border: 1px solid #333;
+    color: #fa6d6d;
+    padding: 4px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: background .2s;
+  }
+  .fs-close:hover { background: rgba(250,109,109,0.1); }
+  #fullscreenFrame {
+    flex: 1;
+    border: none;
+  }
+
+  /* ── STATUS BAR ── */
+  .statusbar {
+    height: 22px;
+    background: var(--accent);
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    gap: 16px;
+    font-size: 10px;
+    color: rgba(255,255,255,0.7);
+    flex-shrink: 0;
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    transition: background .3s;
+  }
+  .statusbar.error { background: #c84b4b; }
+  .statusbar.ready { background: #2a8a5a; }
+  #statusMsg { color: #fff; font-weight: 600; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 30px; right: 20px;
+    background: var(--surface2);
+    border: 1px solid var(--accent);
+    color: var(--text);
+    padding: 10px 18px;
+    font-size: 12px;
+    border-radius: 4px;
+    z-index: 500;
+    transform: translateY(60px);
+    opacity: 0;
+    transition: all .3s cubic-bezier(.4,0,.2,1);
+    pointer-events: none;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  /* ── DROP ZONE ── */
+  .drop-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(124,109,250,0.15);
+    border: 3px dashed var(--accent);
+    z-index: 20;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--accent);
+    letter-spacing: 2px;
+    pointer-events: none;
+  }
+  .drop-overlay.active { display: flex; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+  /* Syntax hint coloring (lightweight, no lib needed) */
+  .hint-tag { color: #7c9ef5; }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">
+    &lt;<span class="logo-dot">/</span>&gt; playground
+  </div>
+
+  <div class="tab-group">
+    <button class="tab active" id="tabEditor" onclick="switchMode('editor')">✏️ Editor</button>
+    <button class="tab" id="tabSplit" onclick="switchMode('split')">⬛ Split</button>
+    <button class="tab" id="tabPreview" onclick="switchMode('preview')">👁️ Vorschau</button>
+  </div>
+
+  <div class="topbar-right">
+    <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+      📁 Datei hochladen
+    </button>
+    <input type="file" id="fileInput" accept=".html,.htm" onchange="loadFile(this)">
+
+    <button class="clear-btn" onclick="clearEditor()" title="Editor leeren">🗑️</button>
+    <button class="fs-btn" onclick="openFullscreen()" title="Vollbild-Vorschau">⛶ Vollbild</button>
+    <button class="run-btn" onclick="runCode()">
+      <span class="play-ico"></span> START
+    </button>
+  </div>
+</div>
+
+<!-- WORKSPACE -->
+<div class="workspace" id="workspace">
+
+  <!-- DROP OVERLAY -->
+  <div class="drop-overlay" id="dropOverlay">📂 HTML-Datei hier ablegen</div>
+
+  <!-- EDITOR PANE -->
+  <div class="editor-pane" id="editorPane">
+    <div class="editor-header">
+      <span class="dot dot-r"></span>
+      <span class="dot dot-y"></span>
+      <span class="dot dot-g"></span>
+      <span style="margin-left:8px">index.html</span>
+      <span id="charCount" style="margin-left:auto">0 Zeichen</span>
+    </div>
+    <div class="editor-body">
+      <div class="line-nums" id="lineNums">1</div>
+      <textarea
+        id="codeEditor"
+        spellcheck="false"
+        autocorrect="off"
+        autocapitalize="off"
+        placeholder="<!-- HTML Code hier einfügen, schreiben oder eine Datei hochladen -->"
+        oninput="onEditorInput()"
+        onscroll="syncScroll()"
+        onkeydown="handleKey(event)"
+      ></textarea>
+    </div>
+  </div>
+
+  <!-- DRAG HANDLE -->
+  <div class="drag-handle" id="dragHandle"></div>
+
+  <!-- PREVIEW PANE -->
+  <div class="preview-pane" id="previewPane">
+    <div class="preview-header">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span>VORSCHAU</span>
+        <span class="preview-url">about:blank</span>
+      </div>
+      <span id="previewInfo" style="color:var(--dim);font-size:10px"></span>
+    </div>
+
+    <!-- Empty state (before first run) -->
+    <div class="empty-state" id="emptyState">
+      <div class="big-ico">🖥️</div>
+      <p>DRÜCKE START UM DEN CODE AUSZUFÜHREN</p>
+      <p style="font-size:10px;opacity:0.5">oder Tab → Vorschau für Live-Vorschau</p>
+    </div>
+    <iframe id="previewFrame" style="display:none" sandbox="allow-scripts allow-same-origin allow-forms allow-modals"></iframe>
+  </div>
+
+  <!-- STATUS BAR -->
+  <div class="statusbar" id="statusbar">
+    <span>⬤</span>
+    <span id="statusMsg">Bereit — Code eingeben und START drücken</span>
+    <span style="margin-left:auto" id="lineInfo">Zeile 1, Spalte 1</span>
+  </div>
+</div>
+
+<!-- FULLSCREEN OVERLAY -->
+<div id="fullscreenOverlay">
+  <div class="fs-bar">
+    <span>⛶ VOLLBILD-VORSCHAU</span>
+    <span id="fsTitle" style="color:#aaa">—</span>
+    <button class="fs-close" onclick="closeFullscreen()">✕ Schließen</button>
+  </div>
+  <iframe id="fullscreenFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-modals"></iframe>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ──
+let currentMode = 'editor'; // editor | split | preview
+let livePreview = false;
+let hasRun = false;
+
+// ── EDITOR INPUT HANDLER ──
+function onEditorInput() {
+  updateLineNumbers();
+  updateCharCount();
+  if (livePreview) runCode(true);
+}
+
+function updateLineNumbers() {
+  const code = document.getElementById('codeEditor').value;
+  const lines = code.split('\n').length;
+  const nums = Array.from({length: lines}, (_,i) => i+1).join('\n');
+  document.getElementById('lineNums').textContent = nums;
+}
+
+function updateCharCount() {
+  const len = document.getElementById('codeEditor').value.length;
+  document.getElementById('charCount').textContent = len.toLocaleString('de') + ' Zeichen';
+}
+
+function syncScroll() {
+  const ta = document.getElementById('codeEditor');
+  document.getElementById('lineNums').scrollTop = ta.scrollTop;
+}
+
+// ── TAB KEY SUPPORT ──
+function handleKey(e) {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const ta = document.getElementById('codeEditor');
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    ta.value = ta.value.substring(0, start) + '  ' + ta.value.substring(end);
+    ta.selectionStart = ta.selectionEnd = start + 2;
+    onEditorInput();
+  }
+  // Ctrl+Enter = Run
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    e.preventDefault();
+    runCode();
+  }
+  // Track cursor position
+  setTimeout(updateCursorPos, 0);
+}
+
+function updateCursorPos() {
+  const ta = document.getElementById('codeEditor');
+  const val = ta.value.substring(0, ta.selectionStart);
+  const lines = val.split('\n');
+  const line = lines.length;
+  const col = lines[lines.length - 1].length + 1;
+  document.getElementById('lineInfo').textContent = `Zeile ${line}, Spalte ${col}`;
+}
+
+// ── RUN CODE ──
+function runCode(silent = false) {
+  const code = document.getElementById('codeEditor').value.trim();
+
+  if (!code) {
+    setStatus('Kein Code vorhanden — bitte zuerst HTML eingeben.', 'error');
+    if (!silent) showToast('⚠️ Editor ist leer!');
+    return;
+  }
+
+  const frame = document.getElementById('previewFrame');
+  const emptyState = document.getElementById('emptyState');
+
+  // Show frame, hide empty state
+  emptyState.style.display = 'none';
+  frame.style.display = 'block';
+
+  // Write code into iframe
+  try {
+    const doc = frame.contentDocument || frame.contentWindow.document;
+    doc.open();
+    doc.write(code);
+    doc.close();
+    hasRun = true;
+
+    // Update preview URL display
+    document.querySelector('.preview-url').textContent = 'preview://local/index.html';
+    document.getElementById('previewInfo').textContent = `${code.length} bytes`;
+
+    setStatus('Ausgeführt ✓ — Code läuft in der Vorschau', 'ready');
+    if (!silent) showToast('🚀 Code gestartet!');
+
+    // If in editor-only mode, switch to split
+    if (currentMode === 'editor') {
+      switchMode('split');
+    }
+  } catch(err) {
+    setStatus('Fehler: ' + err.message, 'error');
+    showToast('❌ Fehler beim Ausführen');
+  }
+}
+
+// ── CLEAR ──
+function clearEditor() {
+  if (document.getElementById('codeEditor').value && !confirm('Editor leeren?')) return;
+  document.getElementById('codeEditor').value = '';
+  document.getElementById('previewFrame').style.display = 'none';
+  document.getElementById('emptyState').style.display = 'flex';
+  document.querySelector('.preview-url').textContent = 'about:blank';
+  hasRun = false;
+  onEditorInput();
+  setStatus('Editor geleert.', '');
+  showToast('🗑️ Editor geleert');
+}
+
+// ── FILE UPLOAD ──
+function loadFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    document.getElementById('codeEditor').value = e.target.result;
+    onEditorInput();
+    setStatus(`Datei geladen: ${file.name} (${(file.size/1024).toFixed(1)} KB)`, 'ready');
+    showToast(`📁 ${file.name} geladen`);
+    // Auto-run
+    runCode();
+  };
+  reader.readAsText(file);
+  input.value = '';
+}
+
+// ── DRAG & DROP ──
+const workspace = document.getElementById('workspace');
+const dropOverlay = document.getElementById('dropOverlay');
+
+workspace.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  dropOverlay.classList.add('active');
+});
+workspace.addEventListener('dragleave', (e) => {
+  if (!workspace.contains(e.relatedTarget)) dropOverlay.classList.remove('active');
+});
+workspace.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropOverlay.classList.remove('active');
+  const file = e.dataTransfer.files[0];
+  if (file && (file.name.endsWith('.html') || file.name.endsWith('.htm'))) {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      document.getElementById('codeEditor').value = ev.target.result;
+      onEditorInput();
+      setStatus(`Datei gezogen: ${file.name}`, 'ready');
+      showToast(`📂 ${file.name} abgelegt`);
+      runCode();
+    };
+    reader.readAsText(file);
+  } else {
+    showToast('⚠️ Nur .html Dateien werden unterstützt');
+  }
+});
+
+// ── VIEW MODE ──
+function switchMode(mode) {
+  currentMode = mode;
+  const editorPane = document.getElementById('editorPane');
+  const previewPane = document.getElementById('previewPane');
+  const dragHandle = document.getElementById('dragHandle');
+
+  // Reset
+  editorPane.style.width = '';
+  editorPane.style.display = '';
+  previewPane.style.display = '';
+  dragHandle.style.display = '';
+
+  if (mode === 'editor') {
+    editorPane.style.width = '100%';
+    previewPane.style.display = 'none';
+    dragHandle.style.display = 'none';
+    livePreview = false;
+  } else if (mode === 'split') {
+    editorPane.style.width = '50%';
+    livePreview = true;
+    if (hasRun) runCode(true);
+  } else if (mode === 'preview') {
+    editorPane.style.display = 'none';
+    dragHandle.style.display = 'none';
+    previewPane.style.flex = '1';
+    livePreview = false;
+    if (!hasRun) runCode(true);
+  }
+
+  // Update tabs
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  const tabMap = { editor:'tabEditor', split:'tabSplit', preview:'tabPreview' };
+  document.getElementById(tabMap[mode]).classList.add('active');
+}
+
+// ── FULLSCREEN ──
+function openFullscreen() {
+  const code = document.getElementById('codeEditor').value.trim();
+  if (!code) { showToast('⚠️ Kein Code zum Anzeigen'); return; }
+
+  const fsFrame = document.getElementById('fullscreenFrame');
+  const doc = fsFrame.contentDocument || fsFrame.contentWindow.document;
+  doc.open(); doc.write(code); doc.close();
+
+  // Try to extract title
+  const match = code.match(/<title>(.*?)<\/title>/i);
+  document.getElementById('fsTitle').textContent = match ? match[1] : 'Unbenannte Seite';
+
+  document.getElementById('fullscreenOverlay').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+function closeFullscreen() {
+  document.getElementById('fullscreenOverlay').classList.remove('active');
+  document.body.style.overflow = '';
+  const fsFrame = document.getElementById('fullscreenFrame');
+  const doc = fsFrame.contentDocument || fsFrame.contentWindow.document;
+  doc.open(); doc.write(''); doc.close();
+}
+// ESC closes fullscreen
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeFullscreen();
+});
+
+// ── STATUS BAR ──
+function setStatus(msg, type) {
+  const bar = document.getElementById('statusbar');
+  document.getElementById('statusMsg').textContent = msg;
+  bar.className = 'statusbar';
+  if (type) bar.classList.add(type);
+}
+
+// ── TOAST ──
+let toastTimeout;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── DRAG HANDLE TO RESIZE ──
+const handle = document.getElementById('dragHandle');
+let isResizing = false;
+
+handle.addEventListener('mousedown', (e) => {
+  isResizing = true;
+  handle.classList.add('dragging');
+  document.body.style.cursor = 'col-resize';
+  document.body.style.userSelect = 'none';
+});
+document.addEventListener('mousemove', (e) => {
+  if (!isResizing) return;
+  const ws = document.getElementById('workspace');
+  const rect = ws.getBoundingClientRect();
+  const offset = e.clientX - rect.left;
+  const total = rect.width;
+  const pct = Math.min(80, Math.max(20, (offset / total) * 100));
+  document.getElementById('editorPane').style.width = pct + '%';
+});
+document.addEventListener('mouseup', () => {
+  if (!isResizing) return;
+  isResizing = false;
+  handle.classList.remove('dragging');
+  document.body.style.cursor = '';
+  document.body.style.userSelect = '';
+});
+
+// ── INIT ──
+updateLineNumbers();
+updateCharCount();
+
+// Paste example code hint
+document.getElementById('codeEditor').addEventListener('focus', () => {
+  if (!document.getElementById('codeEditor').value) {
+    setStatus('Tipp: Ctrl+Enter zum Ausführen • HTML einfügen, schreiben oder Datei hochladen', '');
+  }
+});
+document.getElementById('codeEditor').addEventListener('click', updateCursorPos);
+document.getElementById('codeEditor').addEventListener('keyup', updateCursorPos);
+</script>
+</body>
+</html>
